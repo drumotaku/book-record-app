@@ -64,7 +64,14 @@ else:
     df_display = df.copy()
     df_display.insert(0, "No.", range(1, len(df_display) + 1))
     df_display = df_display.drop(columns=["id"])
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    st.dataframe(df_display, use_container_width=True, hide_index=True, 
+                 column_config={
+                     "title": "タイトル", 
+                     "author": "著者", 
+                     "read_on": "読了日", 
+                     "rating": "評価", 
+                     "created_at": "登録日"
+                     })
 
 st.subheader("削除")
 if st.session_state.books:
