@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from datetime import date, datetime
 import sqlite3
 conn = sqlite3.connect("books.db")
 conn.execute("""
@@ -22,7 +23,65 @@ def load_books():
         dict(zip(["id", "title", "author", "read_on", "rating", "created_at"], row)) for row in rows
     ]
 
-from datetime import date, datetime
+def _parse_date(s):
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except Exception:
+            pass
+    return None
+
+def filter_books(books, title_kw="", author_kw="", rating_min=0, rating_max=5, 
+                 use_date=False, start=None, end=None):
+    rows = []
+    tkw = (title_kw or "").strip().lower()
+    akw = (author_kw or "").strip().lower()
+    for b in books:
+        title = str(b.get("title", ""))
+        author = str(b.get("author", ""))
+        rating = b.get("rating", None)
+        d = _parse_date(b.get("read_on"))
+        if tkw and tkw not in title.lower():
+            continue
+        if akw and akw not in author.lower():
+            continue
+        if rating is not None:
+            try:
+                r = float(rating)
+                if not (rating_min <= r <= rating_max):
+                    continue
+            except Exception:
+                pass
+        if use_date:
+            if start and d and d < start:
+                continue
+            if end and d and d > end:
+                continue
+    rows.append(b)
+
+title_kw = st.text_input("タイトルキーワード")
+author_kw = st.text_input("著者キーワード")
+rating_min = st.number_input("最小評価", min_value=0, max_value=5, value=0)
+rating_max = st.number_input("最大評価", min_value=0, max_value=5, value=5)
+use_date = st.checkbox("日付で絞り込む")
+start = st.date_input("開始日") if use_date else None
+end = st.date_input("終了日") if use_date else None
+
+filtered_books = filter_books(
+    st.session_state.books,
+    title_kw=title_kw,
+    author_kw=author_kw,
+    rating_min=rating_min,
+    rating_max=rating_max,
+    use_date=use_date,
+    start=start,
+    end=end
+)
+
+st.write("検索結果", filtered_books)
+st.dataframe(filtered_books)
 
 st.set_page_config(page_title="読書記録アプリ", page_icon="📚")
 st.title("📚読書記録アプリ(シンプル版)")
