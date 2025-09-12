@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS books (
 """)
 conn.commit()
 
+st.set_page_config(page_title="読書記録アプリ", page_icon="📚")
+st.title("📚読書記録アプリ(シンプル版)")
+
 def load_books():
     rows = conn.execute(
         "SELECT id, title, author, read_on, rating, created_at FROM books ORDER BY id"
@@ -83,8 +86,6 @@ filtered_books = filter_books(
 st.write("検索結果", filtered_books)
 st.dataframe(filtered_books)
 
-st.set_page_config(page_title="読書記録アプリ", page_icon="📚")
-st.title("📚読書記録アプリ(シンプル版)")
 
 if "books" not in st.session_state:
     st.session_state.books = []
