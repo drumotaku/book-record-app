@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from lib import load_books, filter_books, _parse_date
+from lib import load_books_into_session, filter_books, _parse_date
 
 st.title("🔍検索と一覧")
 
