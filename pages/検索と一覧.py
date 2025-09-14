@@ -7,7 +7,7 @@ st.title("🔍検索と一覧")
 
 if "books" not in st.session_state:
     st.session_state.books = []
-    load_books_into_session()
+    load_books_into_session(st)
 
 st.subheader("検索条件")
 title_kw = st.text_input("タイトルキーワード")
