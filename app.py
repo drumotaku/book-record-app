@@ -26,6 +26,10 @@ def load_books():
         dict(zip(["id", "title", "author", "read_on", "rating", "created_at"], row)) for row in rows
     ]
 
+if "books" not in st.session_state:
+    st.session_state.books = []
+load_books()
+
 def _parse_date(s):
     if not s:
         return None
@@ -46,6 +50,7 @@ def filter_books(books, title_kw="", author_kw="", rating_min=0, rating_max=5,
         author = str(b.get("author", ""))
         rating = b.get("rating", None)
         d = _parse_date(b.get("read_on"))
+
         if tkw and tkw not in title.lower():
             continue
         if akw and akw not in author.lower():
@@ -62,34 +67,8 @@ def filter_books(books, title_kw="", author_kw="", rating_min=0, rating_max=5,
                 continue
             if end and d and d > end:
                 continue
-    rows.append(b)
-
-title_kw = st.text_input("タイトルキーワード")
-author_kw = st.text_input("著者キーワード")
-rating_min = st.number_input("最小評価", min_value=0, max_value=5, value=0)
-rating_max = st.number_input("最大評価", min_value=0, max_value=5, value=5)
-use_date = st.checkbox("日付で絞り込む")
-start = st.date_input("開始日") if use_date else None
-end = st.date_input("終了日") if use_date else None
-
-filtered_books = filter_books(
-    st.session_state.books,
-    title_kw=title_kw,
-    author_kw=author_kw,
-    rating_min=rating_min,
-    rating_max=rating_max,
-    use_date=use_date,
-    start=start,
-    end=end
-)
-
-st.write("検索結果", filtered_books)
-st.dataframe(filtered_books)
-
-
-if "books" not in st.session_state:
-    st.session_state.books = []
-load_books()
+        rows.append(b)
+    return rows
 
 with st.form("add_book", clear_on_submit=True):
     title = st.text_input("タイトル *")
@@ -132,6 +111,29 @@ else:
                      "rating": "評価", 
                      "created_at": "登録日"
                      })
+                     
+st.subheader("検索・絞り込み")
+
+title_kw = st.text_input("タイトルキーワード")
+author_kw = st.text_input("著者キーワード")
+rating_min = st.number_input("最小評価", min_value=0, max_value=5, value=0)
+rating_max = st.number_input("最大評価", min_value=0, max_value=5, value=5)
+use_date = st.checkbox("日付で絞り込む")
+start = st.date_input("開始日") if use_date else None
+end = st.date_input("終了日") if use_date else None
+
+filtered_books = filter_books(
+    st.session_state.books,
+    title_kw=title_kw,
+    author_kw=author_kw,
+    rating_min=rating_min,
+    rating_max=rating_max,
+    use_date=use_date,
+    start=start,
+    end=end
+)
+
+st.dataframe(filtered_books)
 
 st.subheader("削除")
 if st.session_state.books:
