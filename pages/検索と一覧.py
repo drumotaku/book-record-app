@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from lib import load_books_into_session, filter_books, _parse_date
+from lib import load_books_into_session, filter_books, _parse_date, get_conn, init_share_schema
+
+with get_conn() as _c:
+    init_share_schema(_c)
 
 st.title("🔍検索と一覧")
 
@@ -32,7 +35,7 @@ if title_kw or author_kw or rating_min > 0 or rating_max < 5 or use_date:
 else:
     books_to_show = st.session_state.books
 
-st.subheader("本の一覧")
+
 
 df = pd.DataFrame(books_to_show)
 
@@ -50,3 +53,36 @@ else:
                      "rating": "評価", 
                      "created_at": "登録日"
                      })
+
+st.subheader("削除")
+if st.session_state.books:
+    no_max = len(st.session_state.books)
+    no_to_delete = st.number_input("削除したい本の『No.』を入力", min_value=1, max_value=no_max, step=1)
+    if st.button("No.で削除"):
+        idx = int(no_to_delete) - 1
+        db_id = st.session_state.books[idx]["id"]
+        conn = get_conn()
+        conn.execute("DELETE FROM books WHERE id = ?", (db_id,))
+        conn.commit()
+        load_books_into_session(st)
+        st.success(f"No.{no_to_delete}を削除しました。")
+
+options = [(i+1, book["id"], book["title"]) for i, book in enumerate(st.session_state.books)]
+selected = st.selectbox(
+    "削除する本を選んでください",
+    options,
+    format_func=lambda x: f"No.{x[0]} | {x[2]}"
+)
+delete_id = selected[1] if selected else None
+
+
+if st.button("選んだ本を削除"):
+    if delete_id is None:
+        st.warning("本が選択されていません。")
+    else:
+        _, _, selected_title = selected
+        conn = get_conn()
+        conn.execute("DELETE FROM books WHERE id = ?", (delete_id,))
+        conn.commit()
+        load_books_into_session(st)
+        st.success(f"『{selected_title}』を削除しました")
