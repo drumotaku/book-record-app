@@ -1,20 +1,20 @@
 import streamlit as st
 import pandas as pd
-from lib import load_books_into_session
+from lib import load_books_into_session, get_conn
 from datetime import date, datetime
-import sqlite3
-conn = sqlite3.connect("books.db")
-conn.execute("""
-CREATE TABLE IF NOT EXISTS books (
+
+with get_conn() as conn:
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS books (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
     author TEXT,
     read_on TEXT,
     rating INTEGER,
     created_at TEXT
-)
-""")
-conn.commit()
+    )
+    """)
+
 
 st.set_page_config(page_title="読書記録アプリ", page_icon="📚")
 st.title("📚読書記録アプリ(シンプル版)")
@@ -74,17 +74,17 @@ if submitted:
     if not title.strip():
         st.warning("タイトルは必須です。")
     else:
-        conn.execute(
-            "INSERT INTO books (title, author, read_on, rating, created_at) VALUES (?, ?, ?, ?, ?)",
-            (title.strip(), 
-             author.strip() or None,
-             read_on.isoformat() if isinstance(read_on, date) else None,
-             int(rating), 
-             datetime.now().isoformat(timespec="seconds"),
-             )
-        )
-        conn.commit()
-        
+        with get_conn() as conn:
+            conn.execute(
+                "INSERT INTO books (title, author, read_on, rating, created_at) VALUES (?, ?, ?, ?, ?)",
+                (
+                title.strip(), 
+                author.strip() or None,
+                read_on.isoformat() if isinstance(read_on, date) else None,
+                int(rating), 
+                datetime.now().isoformat(timespec="seconds"),
+                )
+            )
         load_books_into_session(st)
         st.success(f"追加しました:{title}")
 

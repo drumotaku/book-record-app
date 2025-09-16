@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from lib import load_books_into_session, filter_books, _parse_date, get_conn, init_share_schema
+from lib import load_books_into_session, filter_books, _parse_date, get_conn
 
-with get_conn() as _c:
-    init_share_schema(_c)
+
 
 st.title("🔍検索と一覧")
 
@@ -17,7 +16,7 @@ title_kw = st.text_input("タイトルキーワード")
 author_kw = st.text_input("著者キーワード")
 rating_min = st.number_input("最小評価", min_value=0, max_value=5, value=0)
 rating_max = st.number_input("最大評価", min_value=0, max_value=5, value=5)
-use_date = st.checkbox("日付で絞り込む")
+use_date = st.checkbox("読了日で絞り込む")
 start = st.date_input("開始日") if use_date else None
 end = st.date_input("終了日") if use_date else None
 
@@ -54,29 +53,35 @@ else:
                      "created_at": "登録日"
                      })
 
+st.caption(f"表示冊数 {len(books_to_show)} 冊")
+
 st.subheader("削除")
 if st.session_state.books:
     no_max = len(st.session_state.books)
     no_to_delete = st.number_input("削除したい本の『No.』を入力", min_value=1, max_value=no_max, step=1)
-    if st.button("No.で削除"):
+    if st.button("No.で削除", key="delete_by_no"):
         idx = int(no_to_delete) - 1
-        db_id = st.session_state.books[idx]["id"]
-        conn = get_conn()
-        conn.execute("DELETE FROM books WHERE id = ?", (db_id,))
-        conn.commit()
+        db_id = books_to_show[idx]["id"]
+
+        with get_conn() as conn:
+            conn.execute("DELETE FROM books WHERE id = ?", (db_id,))
+            conn.commit()
         load_books_into_session(st)
         st.success(f"No.{no_to_delete}を削除しました。")
 
-options = [(i+1, book["id"], book["title"]) for i, book in enumerate(st.session_state.books)]
-selected = st.selectbox(
-    "削除する本を選んでください",
+options = [(i+1, book["id"], book["title"]) for i, book in enumerate(books_to_show)]
+selected = None
+delete_id = None
+if options:
+    selected = st.selectbox(
+    "削除する本を選んでください(現在の表示に対応)",
     options,
     format_func=lambda x: f"No.{x[0]} | {x[2]}"
-)
-delete_id = selected[1] if selected else None
+    )
+    delete_id = selected[1]
 
 
-if st.button("選んだ本を削除"):
+if st.button("選んだ本を削除", key="delete_by_select"):
     if delete_id is None:
         st.warning("本が選択されていません。")
     else:
@@ -86,3 +91,5 @@ if st.button("選んだ本を削除"):
         conn.commit()
         load_books_into_session(st)
         st.success(f"『{selected_title}』を削除しました")
+elif not options:
+    st.info("現在の表示に該当する本がありません。検索条件を変えてみてください。")
