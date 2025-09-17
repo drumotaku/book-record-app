@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
-from lib import load_books_into_session, filter_books, _parse_date, get_conn
+from datetime import datetime, date
+from lib import load_books_into_session, filter_books, _parse_date, get_conn, init_share_schema
+import uuid
 
 
 
@@ -55,6 +56,38 @@ else:
 
 st.caption(f"表示冊数 {len(books_to_show)} 冊")
 
+st.subheader("共有リンクを作成")
+
+share_options = [(b["id"], b["title"]) for b in books_to_show]
+selected_ids = st.multiselect(
+    "共有したい本を選択(複数選択可)",
+    share_options,
+    format_func=lambda x: f"{x[1]}"
+    )
+
+share_title = st.text_input("共有リストのタイトル（任意）", value="")
+
+if st.button("共有リンクを作る", key="make_share_link"):
+    if not selected_ids:
+        st.warning("共有する本を選んでください。")
+    else:
+        token = uuid.uuid4().hex[:10]
+        now = datetime.now().isoformat(timespec="seconds")
+
+        with get_conn() as conn:
+            conn.execute(
+                "INSERT INTO share_links (token, title, created_at) VALUES (?, ?, ?)",
+                (token, share_title or None, now),
+                )
+            conn.executemany(
+                "INSERT INTO share_items (token, book_id) VALUES (?, ?)",
+                [(token, bid) for (bid, _title) in selected_ids],
+            )
+        share_url = f"?token={token}"
+        st.success("共有リンクを作成しました!")
+        st.code(share_url, language="text")
+        
+
 st.subheader("削除")
 if st.session_state.books:
     no_max = len(st.session_state.books)
@@ -86,10 +119,10 @@ if st.button("選んだ本を削除", key="delete_by_select"):
         st.warning("本が選択されていません。")
     else:
         _, _, selected_title = selected
-        conn = get_conn()
-        conn.execute("DELETE FROM books WHERE id = ?", (delete_id,))
-        conn.commit()
+        with get_conn() as conn:
+            conn.execute("DELETE FROM books WHERE id = ?", (delete_id,))
         load_books_into_session(st)
         st.success(f"『{selected_title}』を削除しました")
 elif not options:
     st.info("現在の表示に該当する本がありません。検索条件を変えてみてください。")
+

@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from lib import load_books_into_session, get_conn
+from lib import load_books_into_session, get_conn, init_share_schema
 from datetime import date, datetime
 
 with get_conn() as conn:
@@ -15,53 +15,53 @@ with get_conn() as conn:
     )
     """)
 
+with get_conn() as conn:
+    init_share_schema(conn)
 
 st.set_page_config(page_title="読書記録アプリ", page_icon="📚")
 st.title("📚読書記録アプリ(シンプル版)")
+
+share_token = st.query_params.get("share") or st.query_params.get("token")
+if share_token:
+    st.title("📚共有された本のリスト")
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT b.id, b.title, b.author, b.read_on, b.rating, b.created_at,
+            COALESCE(sl.title, '') AS share_title
+            FROM share_items AS si
+            JOIN share_links AS sl ON sl.token = si.token
+            JOIN books AS b        ON b.id = si.book_id
+            WHERE si.token = ?
+                AND COALESCE(sl.is_revoked, 0) = 0
+            ORDER BY b.created_at DESC
+            """,
+            (share_token,),
+        ).fetchall()
+
+    if rows:
+        share_title = rows[0][-1]
+        if share_title:
+            st.subheader(share_title)
+
+        cols = ["id", "title", "author", "read_on", "rating", "created_at", "share_title"]
+        df = pd.DataFrame(rows, columns=cols).drop(columns=["share_title"])
+        df_display = df.copy()
+        df_display.insert(0, "No.", range(1, len(df_display) + 1))
+        df_display = df_display.drop(columns=["id"])
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+    else:
+        st.info("この共有リンクには本がありません、または無効化されています。")
+    
+    st.caption(f"トークン:{share_token}")
+    st.stop()
+
 
 if "books" not in st.session_state:
     st.session_state.books = []
 load_books_into_session(st)
 
-def _parse_date(s):
-    if not s:
-        return None
-    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
-        try:
-            return datetime.strptime(s, fmt).date()
-        except Exception:
-            pass
-    return None
 
-def filter_books(books, title_kw="", author_kw="", rating_min=0, rating_max=5, 
-                 use_date=False, start=None, end=None):
-    rows = []
-    tkw = (title_kw or "").strip().lower()
-    akw = (author_kw or "").strip().lower()
-    for b in books:
-        title = str(b.get("title", ""))
-        author = str(b.get("author", ""))
-        rating = b.get("rating", None)
-        d = _parse_date(b.get("read_on"))
-
-        if tkw and tkw not in title.lower():
-            continue
-        if akw and akw not in author.lower():
-            continue
-        if rating is not None:
-            try:
-                r = float(rating)
-                if not (rating_min <= r <= rating_max):
-                    continue
-            except Exception:
-                pass
-        if use_date:
-            if start and d and d < start:
-                continue
-            if end and d and d > end:
-                continue
-        rows.append(b)
-    return rows
 
 with st.form("add_book", clear_on_submit=True):
     title = st.text_input("タイトル *")
