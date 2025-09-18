@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime, date
 from lib import load_books_into_session, filter_books, _parse_date, get_conn, init_share_schema
 import uuid
+from utils_url import build_share_url
 
 
 
@@ -83,9 +84,10 @@ if st.button("共有リンクを作る", key="make_share_link"):
                 "INSERT INTO share_items (token, book_id) VALUES (?, ?)",
                 [(token, bid) for (bid, _title) in selected_ids],
             )
-        share_url = f"?token={token}"
+        share_url = build_share_url(token)
         st.success("共有リンクを作成しました!")
-        st.code(share_url, language="text")
+        st.code(share_url)
+        st.link_button("リンクを開く", url=share_url)
         
 
 st.subheader("削除")

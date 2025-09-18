@@ -44,7 +44,7 @@ if share_token:
         if share_title:
             st.subheader(share_title)
 
-        cols = ["id", "title", "author", "read_on", "rating", "created_at", "share_title"]
+        cols = ["id", "タイトル", "著者", "読了日", "評価", "登録日", "share_title"]
         df = pd.DataFrame(rows, columns=cols).drop(columns=["share_title"])
         df_display = df.copy()
         df_display.insert(0, "No.", range(1, len(df_display) + 1))
