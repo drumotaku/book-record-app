@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
+from utils_auth import gate
 from datetime import datetime, date
 from lib import load_books_into_session, filter_books, _parse_date, get_conn, init_share_schema
 import uuid
 from utils_url import build_share_url
 
-
+gate()
 
 st.title("🔍検索と一覧")
 
