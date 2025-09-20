@@ -5,7 +5,7 @@ from lib_db import prepare_db, get_conn
 from lib import load_books_into_session, init_share_schema
 from datetime import date, datetime
 
-
+st.set_page_config(page_title="読書記録アプリ", page_icon="📚")
 
 gate()
 
@@ -26,7 +26,6 @@ with get_conn() as conn:
 with get_conn() as conn:
     init_share_schema(conn)
 
-st.set_page_config(page_title="読書記録アプリ", page_icon="📚")
 st.title("📚読書記録アプリ(シンプル版)")
 
 share_token = st.query_params.get("share") or st.query_params.get("token")

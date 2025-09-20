@@ -1,8 +1,7 @@
 import streamlit as st
 
 def gate():
-    st.set_page_config(page_title="認証")
-
+    
     if st.session_state.get("authed"):
         return
     
