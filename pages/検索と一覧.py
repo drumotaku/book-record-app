@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils_auth import gate
-from datetime import datetime, date
+from datetime import datetime
 from lib import load_books_into_session, filter_books
 from lib_db import get_conn
 import uuid
