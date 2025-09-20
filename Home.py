@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
 from utils_auth import gate
-from lib import load_books_into_session, get_conn, init_share_schema
+from lib_db import prepare_db, get_conn
+from lib import load_books_into_session, init_share_schema
 from datetime import date, datetime
 
 
 
 gate()
 
+prepare_db()
 
 with get_conn() as conn:
     conn.execute("""

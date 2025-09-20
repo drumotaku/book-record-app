@@ -1,11 +1,8 @@
-import sqlite3, uuid
-from datetime import datetime, timedelta
-db_path = "books.db"
 
-def get_conn(db_path="books.db"):
-    conn = sqlite3.connect(db_path, check_same_thread=False)
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+from datetime import datetime, timedelta
+from lib_db import get_conn
+
+
 
 def init_share_schema(conn):
     conn.executescript("""

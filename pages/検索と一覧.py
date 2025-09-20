@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 from utils_auth import gate
 from datetime import datetime, date
-from lib import load_books_into_session, filter_books, _parse_date, get_conn, init_share_schema
+from lib import load_books_into_session, filter_books
+from lib_db import get_conn
 import uuid
 from utils_url import build_share_url
 

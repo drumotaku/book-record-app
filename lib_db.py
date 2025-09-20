@@ -31,9 +31,8 @@ def prepare_db():
 
 def get_conn():
     conn = sqlite3.connect(WORKING, check_same_thread=False, timeout=5.0)
+    conn.execute("PRAGMA foreign_keys = ON;")
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA busy_timeout=5000;")
     return conn
 
-def working_db_path() -> str:
-    return str(WORKING)
