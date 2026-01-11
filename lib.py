@@ -2,26 +2,6 @@
 from datetime import datetime
 from lib_db import get_conn
 
-
-
-def init_share_schema(conn):
-    conn.executescript("""
-    CREATE TABLE IF NOT EXISTS share_links(
-        token TEXT PRIMARY KEY,
-        title TEXT,
-        created_at TEXT NOT NULL,
-        expires_at TEXT,
-        is_revoked INTEGER NOT NULL DEFAULT 0
-    );
-    CREATE TABLE IF NOT EXISTS share_items(
-        token TEXT NOT NULL,
-        book_id INTEGER NOT NULL,
-        PRIMARY KEY(token, book_id),
-        FOREIGN KEY(token) REFERENCES share_links(token) ON DELETE CASCADE,
-        FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE
-    );
-    """)
-    conn.commit()
                        
 def load_books_into_session(st):
     conn = get_conn()

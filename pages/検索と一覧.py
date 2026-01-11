@@ -5,7 +5,6 @@ from datetime import datetime
 from lib import load_books_into_session, filter_books
 from lib_db import get_conn
 import uuid
-from utils_url import build_share_url
 
 gate()
 
@@ -58,39 +57,6 @@ else:
                      })
 
 st.caption(f"表示冊数 {len(books_to_show)} 冊")
-
-st.subheader("共有リンクを作成")
-
-share_options = [(b["id"], b["title"]) for b in books_to_show]
-selected_ids = st.multiselect(
-    "共有したい本を選択(複数選択可)",
-    share_options,
-    format_func=lambda x: f"{x[1]}"
-    )
-
-share_title = st.text_input("共有リストのタイトル（任意）", value="")
-
-if st.button("共有リンクを作る", key="make_share_link"):
-    if not selected_ids:
-        st.warning("共有する本を選んでください。")
-    else:
-        token = uuid.uuid4().hex[:10]
-        now = datetime.now().isoformat(timespec="seconds")
-
-        with get_conn() as conn:
-            conn.execute(
-                "INSERT INTO share_links (token, title, created_at) VALUES (?, ?, ?)",
-                (token, share_title or None, now),
-                )
-            conn.executemany(
-                "INSERT INTO share_items (token, book_id) VALUES (?, ?)",
-                [(token, bid) for (bid, _title) in selected_ids],
-            )
-        share_url = build_share_url(token)
-        st.success("共有リンクを作成しました!")
-        st.code(share_url)
-        st.link_button("リンクを開く", url=share_url)
-        
 
 st.subheader("削除")
 if st.session_state.books:
