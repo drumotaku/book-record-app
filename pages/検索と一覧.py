@@ -1,14 +1,12 @@
 import streamlit as st
 import pandas as pd
 from utils_auth import gate
-from datetime import datetime
 from lib import load_books_into_session, filter_books
 from lib_db import get_conn
-import uuid
 
 gate()
 
-st.title("🔍検索と一覧")
+st.title("🔍検索・一覧・削除")
 
 if "books" not in st.session_state:
     st.session_state.books = []
