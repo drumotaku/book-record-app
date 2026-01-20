@@ -99,6 +99,8 @@ if books_to_show:
         book = books_to_show[idx]
         set_pending(book_id=book["id"], title=book["title"], source="no", label=f"No.{no_to_delete}")
 
+    pending = st.session_state.pending_delete
+
     # No側の確認UI（この場所に出す）
     if pending and pending.get("source") == "no":
         with confirm_area_no.container():
@@ -134,6 +136,8 @@ if books_to_show:
     if st.button("選んだ本を削除（確認へ）", key="prepare_delete_by_select"):
         no, book_id, title = selected
         set_pending(book_id=book_id, title=title, source="select", label=f"No.{no}（選択）")
+
+    pending = st.session_state.pending_delete 
 
     # 選択側の確認UI（この場所に出す）
     if pending and pending.get("source") == "select":
