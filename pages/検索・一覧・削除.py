@@ -57,40 +57,77 @@ else:
 st.caption(f"表示冊数 {len(books_to_show)} 冊")
 
 st.subheader("削除")
-if st.session_state.books:
-    no_max = len(st.session_state.books)
-    no_to_delete = st.number_input("削除したい本の『No.』を入力", min_value=1, max_value=no_max, step=1)
-    if st.button("No.で削除", key="delete_by_no"):
-        idx = int(no_to_delete) - 1
-        db_id = books_to_show[idx]["id"]
 
-        with get_conn() as conn:
-            conn.execute("DELETE FROM books WHERE id = ?", (db_id,))
-            conn.commit()
-        load_books_into_session(st)
-        st.success(f"No.{no_to_delete}を削除しました。")
+# --- 削除予定（確認待ち）を保持する入れ物 ---
+if "pending_delete" not in st.session_state:
+    st.session_state.pending_delete = None
 
-options = [(i+1, book["id"], book["title"]) for i, book in enumerate(books_to_show)]
-selected = None
-delete_id = None
-if options:
-    selected = st.selectbox(
-    "削除する本を選んでください(現在の表示に対応)",
-    options,
-    format_func=lambda x: f"No.{x[0]} | {x[2]}"
+def set_pending_delete(book_id: int, title: str, how: str):
+    st.session_state.pending_delete = {"id": book_id, "title": title, "how": how}
+    # すぐ確認UIを出したいなら rerun（なくてもOKな場合も多い）
+    st.rerun()
+
+def clear_pending_delete():
+    st.session_state.pending_delete = None
+
+# 表示対象があるか（※「現在の表示に対応」を守るなら books_to_show を基準にする）
+if books_to_show:
+    no_max = len(books_to_show)
+
+    # --- 方法1: No.入力で削除（現在の表示に対応） ---
+    no_to_delete = st.number_input(
+        "削除したい本の『No.』を入力（現在の表示に対応）",
+        min_value=1,
+        max_value=no_max,
+        step=1
     )
-    delete_id = selected[1]
 
+    if st.button("No.で削除（確認へ）", key="prepare_delete_by_no"):
+        idx = int(no_to_delete) - 1
+        book = books_to_show[idx]
+        set_pending_delete(book_id=book["id"], title=book["title"], how=f"No.{no_to_delete}")
 
-if st.button("選んだ本を削除", key="delete_by_select"):
-    if delete_id is None:
-        st.warning("本が選択されていません。")
-    else:
-        _, _, selected_title = selected
-        with get_conn() as conn:
-            conn.execute("DELETE FROM books WHERE id = ?", (delete_id,))
-        load_books_into_session(st)
-        st.success(f"『{selected_title}』を削除しました")
-elif not options:
+    st.divider()
+
+    # --- 方法2: 選択で削除（現在の表示に対応） ---
+    options = [(i + 1, book["id"], book["title"]) for i, book in enumerate(books_to_show)]
+    selected = st.selectbox(
+        "削除する本を選んでください（現在の表示に対応）",
+        options,
+        format_func=lambda x: f"No.{x[0]} | {x[2]}"
+    )
+
+    if st.button("選んだ本を削除（確認へ）", key="prepare_delete_by_select"):
+        no, book_id, title = selected
+        set_pending_delete(book_id=book_id, title=title, how=f"No.{no}（選択）")
+
+else:
     st.info("現在の表示に該当する本がありません。検索条件を変えてみてください。")
+
+# --- 二段階目: 確認→確定/キャンセル ---
+pending = st.session_state.pending_delete
+if pending is not None:
+    st.warning(
+        f"削除確認：『{pending['title']}』を削除しますか？（{pending['how']}）\n"
+        "※この操作は取り消せません。"
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("削除を確定する", key="confirm_delete"):
+            with get_conn() as conn:
+                conn.execute("DELETE FROM books WHERE id = ?", (pending["id"],))
+                conn.commit()
+            load_books_into_session(st)
+            st.success(f"『{pending['title']}』を削除しました。")
+            clear_pending_delete()
+            st.rerun()
+
+    with col2:
+        if st.button("キャンセル", key="cancel_delete"):
+            clear_pending_delete()
+            st.info("削除をキャンセルしました。")
+            st.rerun()
+
 
