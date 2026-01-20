@@ -75,6 +75,14 @@ def clear_pending():
 
 pending = st.session_state.pending_delete
 
+pending = st.session_state.pending_delete
+
+# 古い形式の pending_delete が残っていたらクリア
+if isinstance(pending, dict) and ("source" not in pending or "label" not in pending):
+    st.session_state.pending_delete = None
+    pending = None
+
+
 if books_to_show:
     # --- No で削除（確認へ） ---
     st.write("### No.で削除（確認へ）")
@@ -92,7 +100,7 @@ if books_to_show:
         set_pending(book_id=book["id"], title=book["title"], source="no", label=f"No.{no_to_delete}")
 
     # No側の確認UI（この場所に出す）
-    if pending and pending["source"] == "no":
+    if pending and pending.get("source") == "no":
         with confirm_area_no.container():
             st.warning(f"削除確認：『{pending['title']}』を削除しますか？（{pending['label']}）")
             c1, c2 = st.columns(2)
@@ -128,7 +136,7 @@ if books_to_show:
         set_pending(book_id=book_id, title=title, source="select", label=f"No.{no}（選択）")
 
     # 選択側の確認UI（この場所に出す）
-    if pending and pending["source"] == "select":
+    if pending and pending.get("source") == "select":
         with confirm_area_sel.container():
             st.warning(f"削除確認：『{pending['title']}』を削除しますか？（{pending['label']}）")
             c1, c2 = st.columns(2)
